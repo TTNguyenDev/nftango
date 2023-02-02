@@ -1,11 +1,10 @@
 module overmind::nftango {
-    use aptos_framework::account;
-    use aptos_token::token;
     use std::option::Option;
-    use std::error;
-    use std::signer;
-    use std::vector;
-    use std::option;
+    use std::string::String;
+
+    use aptos_framework::account;
+
+    use aptos_token::token::TokenId;
 
     //
     // Errors
@@ -21,16 +20,17 @@ module overmind::nftango {
     const ERROR_NFTANGO_STORE_DOES_NOT_HAVE_DID_CREATOR_WIN: u64 = 8;
     const ERROR_NFTANGO_STORE_HAS_CLAIMED: u64 = 9;
     const ERROR_NFTANGO_STORE_IS_NOT_PLAYER: u64 = 10;
+    const ERROR_VECTOR_LENGTHS_NOT_EQUAL: u64 = 11;
 
     //
     // Data structures
     //
     struct NFTangoStore has key {
-        creator_token_id: token::TokenId,
+        creator_token_id: TokenId,
         // The number of NFTs (one more more) from the same collection that the opponent needs to bet to enter the game
         join_amount_requirement: u64,
         opponent_address: Option<address>,
-        opponent_token_ids: vector<token::TokenId>,
+        opponent_token_ids: vector<TokenId>,
         active: bool,
         has_claimed: bool,
         did_creator_win: Option<bool>,
@@ -78,16 +78,9 @@ module overmind::nftango {
 
     public fun assert_nftango_store_join_amount_requirement_is_met(
         game_address: address,
-        token_ids: vector<token::TokenId>,
+        token_ids: vector<TokenId>,
     ) acquires NFTangoStore {
         // TODO: assert that `NFTangoStore.join_amount_requirement` is met
-    }
-
-    public fun assert_nfts_are_in_the_same_collection(
-        game_address: address,
-        token_ids: vector<token::TokenId>,
-    ) acquires NFTangoStore {
-        // TODO: assert that `NFTangoStore.creator_token_id` and `token_ids` are all have the same `creator`, `collection`, and `name`
     }
 
     public fun assert_nftango_store_has_did_creator_win(
@@ -106,17 +99,29 @@ module overmind::nftango {
         // TODO: assert that `account_address` is either the equal to `game_address` or `NFTangoStore.opponent_address`
     }
 
+    public fun assert_vector_lengths_are_equal(creator: vector<address>,
+                                               collection_name: vector<String>,
+                                               token_name: vector<String>,
+                                               property_version: vector<u64>) {
+        // TODO: assert all vector lengths are equal
+    }
+
     //
     // Entry functions
     //
     public entry fun initialize_game(
         account: &signer,
-        token_id: token::TokenId,
+        creator: address,
+        collection_name: String,
+        token_name: String,
+        property_version: u64,
         join_amount_requirement: u64
     ) {
-        // TODO: run assert_nftango_store_exists
+        // TODO: run assert_nftango_store_does_not_exist
 
         // TODO: create resource account
+
+        // TODO: token::create_token_id_raw
 
         // TODO: opt in to direct transfer for resource account
 
@@ -139,16 +144,22 @@ module overmind::nftango {
         // TODO: set `NFTangoStore.active` to false
     }
 
-    public entry fun join_game(
+    public fun join_game(
         account: &signer,
         game_address: address,
-        token_ids: vector<token::TokenId>,
+        creators: vector<address>,
+        collection_names: vector<String>,
+        token_names: vector<String>,
+        property_versions: vector<u64>,
     ) acquires NFTangoStore {
+        // TODO: run assert_vector_lengths_are_equal
+
+        // TODO: loop through and create token_ids vector<TokenId>
+
         // TODO: run assert_nftango_store_exists
         // TODO: run assert_nftango_store_is_active
         // TODO: run assert_nftango_store_does_not_have_an_opponent
         // TODO: run assert_nftango_store_join_amount_requirement_is_met
-        // TODO: run assert_nfts_are_in_the_same_collection
 
         // TODO: loop through token_ids and transfer each NFT to the resource account
 
