@@ -1,14 +1,14 @@
 module overmind::nftango_test {
     #[test_only]
-    use std::signer;
-    #[test_only]
     use aptos_framework::account;
     #[test_only]
     use aptos_token::token;
     #[test_only]
-    use std::string::String;
-    #[test_only]
     use overmind::nftango::{initialize_game, assert_nftango_store_exists, cancel_game, assert_nftango_store_is_not_active, join_game, assert_nftango_store_has_an_opponent, play_game, claim};
+    #[test_only]
+    use std::signer;
+    #[test_only]
+    use std::string::String;
     #[test_only]
     use std::vector;
 
@@ -44,11 +44,18 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
@@ -57,7 +64,7 @@ module overmind::nftango_test {
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12)]
-    #[expected_failure(abort_code = 196608)]
+    #[expected_failure(abort_code = 196608, location = overmind::nftango)]
     fun test_initialize_game_failure_nftango_already_exists(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -85,17 +92,27 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
     }
@@ -128,11 +145,18 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
@@ -146,7 +170,7 @@ module overmind::nftango_test {
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12)]
-    #[expected_failure(abort_code = 65539)]
+    #[expected_failure(abort_code = 65539, location = overmind::nftango)]
     fun test_cancel_game_failure_is_not_active(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -174,11 +198,18 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
@@ -190,7 +221,7 @@ module overmind::nftango_test {
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12, opponent = @0x34)]
-    #[expected_failure(abort_code = 65540)]
+    #[expected_failure(abort_code = 65540, location = overmind::nftango)]
     fun test_cancel_game_failure_already_has_an_opponent(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -222,22 +253,43 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
         token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         cancel_game(creator);
     }
 
@@ -273,28 +325,49 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
         token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         assert!(token::balance_of(opponent_address, token_id) == 0, 0);
         assert_nftango_store_has_an_opponent(creator_address);
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12, opponent = @0x34)]
-    #[expected_failure(abort_code = 65540)]
+    #[expected_failure(abort_code = 65540, location = overmind::nftango)]
     fun test_join_game_failure_has_an_opponent(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -326,27 +399,55 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
         token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12, opponent = @0x34)]
-    #[expected_failure(abort_code = 65542)]
+    #[expected_failure(abort_code = 65542, location = overmind::nftango)]
     fun test_join_game_failure_join_amount_requirement_is_not_met(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -378,23 +479,43 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
-        token::transfer(nft_owner, token_id, opponent_address, 2);
+        token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
-            1
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
+            3
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
     }
 
     #[test(
@@ -404,7 +525,7 @@ module overmind::nftango_test {
         creator = @0x34,
         opponent = @0x56
     )]
-    #[expected_failure(abort_code = 65543)]
+    #[expected_failure(abort_code = 65541, location = aptos_token::token)]
     fun test_join_game_failure_nfts_are_different_collections(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -441,6 +562,10 @@ module overmind::nftango_test {
 
         token::transfer(nft_owner, token_id, creator_address, 1);
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         let second_token_id = token::create_collection_and_token(
             nft_second_owner,
             10,
@@ -455,19 +580,40 @@ module overmind::nftango_test {
 
         token::transfer(nft_second_owner, second_token_id, opponent_address, 1);
 
+        let (nft_second_creator, nft_second_collection_name, nft_second_token_name, nft_second_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, second_token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_second_creator);
+        vector::push_back(&mut nft_collection_names, nft_second_collection_name);
+        vector::push_back(&mut nft_token_names, nft_second_token_name);
+        vector::push_back(&mut nft_property_versions, nft_second_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12, opponent = @0x34)]
@@ -502,22 +648,43 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
         token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         assert!(token::balance_of(opponent_address, token_id) == 0, 0);
         assert_nftango_store_has_an_opponent(creator_address);
 
@@ -557,22 +724,43 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
         token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         assert!(token::balance_of(opponent_address, token_id) == 0, 0);
         assert_nftango_store_has_an_opponent(creator_address);
 
@@ -615,24 +803,55 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
-        token::transfer(nft_owner, token_id, opponent_address, 3);
+        token::transfer(nft_owner, token_id, opponent_address, 1);
+        token::transfer(nft_owner, token_id, opponent_address, 1);
+        token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
             3
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         assert!(token::balance_of(opponent_address, token_id) == 0, 0);
         assert_nftango_store_has_an_opponent(creator_address);
 
@@ -644,7 +863,7 @@ module overmind::nftango_test {
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12, opponent = @0x34)]
-    #[expected_failure(abort_code = 65545)]
+    #[expected_failure(abort_code = 65545, location = overmind::nftango)]
     fun test_claim_failure_has_claimed(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -676,24 +895,43 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
-        token::transfer(nft_owner, token_id, opponent_address, 3);
+        token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
-            3
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
+            1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         assert!(token::balance_of(opponent_address, token_id) == 0, 0);
         assert_nftango_store_has_an_opponent(creator_address);
 
@@ -705,7 +943,7 @@ module overmind::nftango_test {
     }
 
     #[test(aptos_framework = @0x1, nft_owner = @0xCAFE, creator = @0x12, opponent = @0x34, random = @0x56)]
-    #[expected_failure(abort_code = 65546)]
+    #[expected_failure(abort_code = 65546, location = overmind::nftango)]
     fun test_claim_failure_is_not_player(
         aptos_framework: &signer,
         nft_owner: &signer,
@@ -740,24 +978,43 @@ module overmind::nftango_test {
             vector<bool>[false, false, false, false, true],
         );
 
+        let (nft_creator, nft_collection_name, nft_token_name, nft_property_version) = token::get_token_id_fields(
+            &token_id
+        );
+
         token::transfer(nft_owner, token_id, creator_address, 1);
-        token::transfer(nft_owner, token_id, opponent_address, 3);
+        token::transfer(nft_owner, token_id, opponent_address, 1);
 
         initialize_game(
             creator,
-            token_id,
-            3
+            nft_creator,
+            nft_collection_name,
+            nft_token_name,
+            nft_property_version,
+            1
         );
 
         assert_nftango_store_exists(creator_address);
         assert!(token::balance_of(creator_address, token_id) == 0, 0);
 
-        let token_ids: vector<token::TokenId> = vector::empty();
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
-        vector::push_back(&mut token_ids, token_id);
+        let nft_creators: vector<address> = vector::empty();
+        let nft_collection_names: vector<String> = vector::empty();
+        let nft_token_names: vector<String> = vector::empty();
+        let nft_property_versions: vector<u64> = vector::empty();
 
-        join_game(opponent, creator_address, token_ids);
+        vector::push_back(&mut nft_creators, nft_creator);
+        vector::push_back(&mut nft_collection_names, nft_collection_name);
+        vector::push_back(&mut nft_token_names, nft_token_name);
+        vector::push_back(&mut nft_property_versions, nft_property_version);
+
+        join_game(
+            opponent,
+            creator_address,
+            nft_creators,
+            nft_collection_names,
+            nft_token_names,
+            nft_property_versions
+        );
         assert!(token::balance_of(opponent_address, token_id) == 0, 0);
         assert_nftango_store_has_an_opponent(creator_address);
 
