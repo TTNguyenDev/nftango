@@ -1,9 +1,8 @@
 module overmind::nftango {
     use std::option::Option;
     use std::string::String;
-
     use aptos_framework::account;
-
+    use std::vector;
     use aptos_token::token::TokenId;
 
     //
@@ -43,36 +42,50 @@ module overmind::nftango {
         account_address: address,
     ) {
         // TODO: assert that `NFTangoStore` exists
+        assert!(exists<NFTangoStore>(account_address), ERROR_NFTANGO_STORE_DOES_NOT_EXIST);
     }
 
     public fun assert_nftango_store_does_not_exist(
         account_address: address,
     ) {
         // TODO: assert that `NFTangoStore` does not exist
+        assert!(!exists<NFTangoStore>(account_address), ERROR_NFTANGO_STORE_EXISTS);
     }
 
     public fun assert_nftango_store_is_active(
         account_address: address,
     ) acquires NFTangoStore {
+        assert_nftango_store_exists(account_address);
         // TODO: assert that `NFTangoStore.active` is active
+        let nftango_store = borrow_global<NFTangoStore>(account_address);
+        assert!(nftango_store.active, ERROR_NFTANGO_STORE_IS_NOT_ACTIVE);
     }
 
     public fun assert_nftango_store_is_not_active(
         account_address: address,
     ) acquires NFTangoStore {
+        assert_nftango_store_exists(account_address);
         // TODO: assert that `NFTangoStore.active` is not active
+        let nftango_store = borrow_global<NFTangoStore>(account_address);
+        assert!(!nftango_store.active, ERROR_NFTANGO_STORE_IS_ACTIVE);
     }
 
     public fun assert_nftango_store_has_an_opponent(
         account_address: address,
     ) acquires NFTangoStore {
+        assert_nftango_store_exists(account_address);
         // TODO: assert that `NFTangoStore.opponent_address` is set
+        let nftango_store = borrow_global<NFTangoStore>(account_address);
+        assert!(std::option::is_some(&nftango_store.opponent_address), ERROR_NFTANGO_STORE_DOES_NOT_HAVE_AN_OPPONENT);
     }
 
     public fun assert_nftango_store_does_not_have_an_opponent(
         account_address: address,
     ) acquires NFTangoStore {
-        // TODO: assert that `NFTangoStore.opponent_address` is not set
+        assert_nftango_store_exists(account_address);
+         // TODO: assert that `NFTangoStore.opponent_address` is not set
+        let nftango_store = borrow_global<NFTangoStore>(account_address);
+        assert!(std::option::is_none(&nftango_store.opponent_address), ERROR_NFTANGO_STORE_HAS_AN_OPPONENT);
     }
 
     public fun assert_nftango_store_join_amount_requirement_is_met(
@@ -80,22 +93,37 @@ module overmind::nftango {
         token_ids: vector<TokenId>,
     ) acquires NFTangoStore {
         // TODO: assert that `NFTangoStore.join_amount_requirement` is met
+          let nftango_store = borrow_global<NFTangoStore>(game_address);
+          let nfts_len = vector::length(&token_ids);
+          assert!(nftango_store.join_amount_requirement == nfts_len, ERROR_NFTANGO_STORE_JOIN_AMOUNT_REQUIREMENT_NOT_MET);
     }
 
     public fun assert_nftango_store_has_did_creator_win(
         game_address: address,
     ) acquires NFTangoStore {
         // TODO: assert that `NFTangoStore.did_creator_win` is set
+        let nftango_store = borrow_global<NFTangoStore>(game_address);
+        assert!(std::option::is_some(&nftango_store.did_creator_win), ERROR_NFTANGO_STORE_DOES_NOT_HAVE_DID_CREATOR_WIN);
     }
 
     public fun assert_nftango_store_has_not_claimed(
         game_address: address,
     ) acquires NFTangoStore {
         // TODO: assert that `NFTangoStore.has_claimed` is false
+        let nftango_store = borrow_global<NFTangoStore>(game_address);
+        assert!(nftango_store.has_claimed == false, ERROR_NFTANGO_STORE_HAS_CLAIMED);
     }
 
     public fun assert_nftango_store_is_player(account_address: address, game_address: address) acquires NFTangoStore {
         // TODO: assert that `account_address` is either the equal to `game_address` or `NFTangoStore.opponent_address`
+        let nftango_store = borrow_global<NFTangoStore>(game_address);
+        let opponent_address_option = nftango_store.opponent_address;
+        if (std::option::is_some(&opponent_address_option)) {
+            let opponent_address = std::option::extract(&mut opponent_address_option);
+            assert!((account_address == game_address) || account_address == opponent_address, ERROR_NFTANGO_STORE_IS_NOT_PLAYER)
+        } else {
+            assert!((account_address == game_address), ERROR_NFTANGO_STORE_IS_NOT_PLAYER);
+        }
     }
 
     public fun assert_vector_lengths_are_equal(creator: vector<address>,
@@ -103,6 +131,11 @@ module overmind::nftango {
                                                token_name: vector<String>,
                                                property_version: vector<u64>) {
         // TODO: assert all vector lengths are equal
+        let creator_len = vector::length(&creator);
+        let collection_name_len = vector::length(&collection_name);
+        let token_name_len = vector::length(&token_name);
+        let property_version_len = vector::length(&property_version);
+        assert!(creator_len == collection_name_len && collection_name_len == token_name_len && token_name_len == property_version_len, error::not_found(ERROR_VECTOR_LENGTHS_NOT_EQUAL));
     }
 
     //
