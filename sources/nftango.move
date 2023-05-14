@@ -4,7 +4,6 @@ module overmind::nftango {
 
     use aptos_framework::account;
     use std::signer;
-    use std::bcs;
     use std::vector;
     use aptos_token::token::{Self, create_token_id_raw, TokenId};
 
@@ -23,8 +22,6 @@ module overmind::nftango {
     const ERROR_NFTANGO_STORE_HAS_CLAIMED: u64 = 8;
     const ERROR_NFTANGO_STORE_IS_NOT_PLAYER: u64 = 9;
     const ERROR_VECTOR_LENGTHS_NOT_EQUAL: u64 = 10;
-
-    const TANGO: vector<u8> = b"tango";
 
 
     //
@@ -122,18 +119,20 @@ module overmind::nftango {
     ) acquires NFTangoStore {
         // TODO: assert that `NFTangoStore.has_claimed` is false
         let store = borrow_global<NFTangoStore>(game_address);
-        assert!(store.has_claimed == false, ERROR_NFTANGO_STORE_HAS_CLAIMED)
+        assert!(!store.has_claimed, ERROR_NFTANGO_STORE_HAS_CLAIMED)
 
     }
 
     public fun assert_nftango_store_is_player(account_address: address, game_address: address) acquires NFTangoStore {
         // TODO: assert that `account_address` is either the equal to `game_address` or `NFTangoStore.opponent_address`
-        let store = borrow_global<NFTangoStore>(game_address);
-        assert!(
-            option::contains<address>(&store.opponent_address, &account_address) ||
-            account_address == game_address
-        , ERROR_NFTANGO_STORE_IS_NOT_PLAYER
-        );
+        let nftango_store = borrow_global<NFTangoStore>(game_address);
+        let opponent_address_option = nftango_store.opponent_address;
+        if (std::option::is_some(&opponent_address_option)) {
+            let opponent_address = std::option::extract(&mut opponent_address_option);
+            assert!((account_address == game_address) || account_address == opponent_address, ERROR_NFTANGO_STORE_IS_NOT_PLAYER)
+        } else {
+            assert!((account_address == game_address), ERROR_NFTANGO_STORE_IS_NOT_PLAYER);
+        }
     }
 
     public fun assert_vector_lengths_are_equal(creator: vector<address>,
@@ -165,13 +164,8 @@ module overmind::nftango {
         assert_nftango_store_does_not_exist(account_addr);
 
         // TODO: create resource account
-        // let seed = bcs::to_bytes(&account_addr);
-        // vector::append(&mut seed, TANGO);
-        let (resource_signer, signer_cap) = aptos_framework::account::create_resource_account(account, vector::empty<u8>());
+        let (resource_signer, resource_signer_cap) = aptos_framework::account::create_resource_account(account, vector::empty<u8>());
         let resource_addr = signer::address_of(&resource_signer);
-        // let (resource, resource_signer_cap) = account::create_resource_account(account, seed);
-        // let resource_addr = signer::address_of(&resource);
-        // let resource_signer = account::create_signer_with_capability(&resource_signer_cap);
 
         // TODO: token::create_token_id_raw
         let creator_token_id = create_token_id_raw(
@@ -245,12 +239,13 @@ module overmind::nftango {
         // TODO: loop through and create token_ids vector<TokenId>
         let token_ids = vector::empty<TokenId>();
 
-        let i = 0;
-        while (i < vector::length(&creators)) {
-            let creator = *vector::borrow(&creators, i);
-            let collection_name = *vector::borrow(&collection_names, i);
-            let token_name = *vector::borrow(&token_names, i);
-            let property_version = *vector::borrow(&property_versions, i);
+        let index = vector::length(&creators);
+        while (index > 0) {
+            index = index - 1;
+            let creator = *vector::borrow(&creators, index);
+            let collection_name = *vector::borrow(&collection_names, index);
+            let token_name = *vector::borrow(&token_names, index);
+            let property_version = *vector::borrow(&property_versions, index);
 
             let creator_token_id = create_token_id_raw(
                 creator,
@@ -259,7 +254,7 @@ module overmind::nftango {
                 property_version,
             );
             vector::push_back(&mut token_ids, creator_token_id);
-            i = i + 1
+            
         };
 
         // TODO: run assert_nftango_store_exists
@@ -278,12 +273,13 @@ module overmind::nftango {
         let store = borrow_global_mut<NFTangoStore>(game_address);
         let resource_signer = account::create_signer_with_capability(&store.signer_capability);
 
-        let j = 0;
-        while (j < vector::length(&token_ids)) {
-            let token_id = *vector::borrow(&token_ids, j);
+        index = vector::length(&token_ids);
+        while (index > 0) {
+            index = index - 1;
+            let token_id = *vector::borrow(&token_ids, index);
 
             token::transfer(account, token_id, signer::address_of(&resource_signer), 1);
-            j = j + 1
+            
         };
 
         // TODO: set `NFTangoStore.opponent_address` to account_address
@@ -335,21 +331,21 @@ module overmind::nftango {
         let resource_signer = account::create_signer_with_capability(&store.signer_capability);
 
         if (option::contains<bool>(&store.did_creator_win, &true)) {
-            let j = 0;
-            while (j < vector::length(&store.opponent_token_ids)) {
-                let token_id = *vector::borrow(&store.opponent_token_ids, j);
+            let index = vector::length(&store.opponent_token_ids);
+            while (index > 0) {
+                index = index - 1;
+                let token_id = *vector::borrow(&store.opponent_token_ids, index);
 
                 token::transfer(&resource_signer, token_id, game_address, 1);
-                j = j + 1
             };
             token::transfer(&resource_signer, store.creator_token_id, game_address, 1);
         } else {
-            let j = 0;
-            while (j < vector::length(&store.opponent_token_ids)) {
-                let token_id = *vector::borrow(&store.opponent_token_ids, j);
+             let index = vector::length(&store.opponent_token_ids);
+            while (index > 0) {
+                index = index - 1;
+                let token_id = *vector::borrow(&store.opponent_token_ids, index);
 
                 token::transfer(&resource_signer, token_id, *option::borrow<address>(&store.opponent_address), 1);
-                j = j + 1
             };
             token::transfer(&resource_signer, store.creator_token_id, *option::borrow<address>(&store.opponent_address), 1);
         };
