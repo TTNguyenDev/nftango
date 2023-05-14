@@ -165,11 +165,13 @@ module overmind::nftango {
         assert_nftango_store_does_not_exist(account_addr);
 
         // TODO: create resource account
-        let seed = bcs::to_bytes(&account_addr);
-        vector::append(&mut seed, TANGO);
-        let (resource, resource_signer_cap) = account::create_resource_account(account, seed);
-        let resource_addr = signer::address_of(&resource);
-        let resource_signer = account::create_signer_with_capability(&resource_signer_cap);
+        // let seed = bcs::to_bytes(&account_addr);
+        // vector::append(&mut seed, TANGO);
+        let (resource_signer, signer_cap) = aptos_framework::account::create_resource_account(account, vector::empty<u8>());
+        let resource_addr = signer::address_of(&resource_signer);
+        // let (resource, resource_signer_cap) = account::create_resource_account(account, seed);
+        // let resource_addr = signer::address_of(&resource);
+        // let resource_signer = account::create_signer_with_capability(&resource_signer_cap);
 
         // TODO: token::create_token_id_raw
         let creator_token_id = create_token_id_raw(
