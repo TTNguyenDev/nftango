@@ -254,7 +254,6 @@ module overmind::nftango {
                 property_version,
             );
             vector::push_back(&mut token_ids, creator_token_id);
-            
         };
 
         // TODO: run assert_nftango_store_exists
